@@ -1,0 +1,11 @@
+SilverStripe\ExternalLinks\Model\BrokenExternalLink:
+  extensions:
+    - Toast\Extensions\BrokenExternalLinkExtension
+
+SilverStripe\ExternalLinks\Model\BrokenExternalPageTrack:
+  extensions:
+    - Toast\Extensions\BrokenExternalPageTrackExtension
+
+SilverStripe\Reports\Report:
+  excluded_reports:
+    - 'SilverStripe\ExternalLinks\Reports\BrokenExternalLinksReport'

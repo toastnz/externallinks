@@ -1,109 +1,128 @@
-# SilverStripe supported module skeleton
+# External links (including Blocks HTMLText fields)
 
-A useful skeleton to more easily create a [Silverstripe Module](https://docs.silverstripe.org/en/4/developer_guides/extending/modules/) that conform to the
-[Module Standard](https://docs.silverstripe.org/en/developer_guides/extending/modules/#module-standard).
+## Introduction
 
-This readme contains descriptions of the parts of this module base you should customise to meet you own module needs.
-For example, the module name in the H1 above should be you own module name, and the description text you are reading now
-is where you should provide a good short explanation of what your module does.
+The external links module is a task and ModelAdmin to track and to report on broken external links.
+This module can also check the blocks HTMLText fields.
 
-Where possible we have included default text that can be included as is into your module and indicated in 
-other places where you need to customise it
+It's based on Silverstripe External Links, but including the Blocks HTMLText fiedls.
 
-Below is a template of the sections of your readme.md you should ideally include to met the Module Standard 
-and help others make use of your modules.
+https://github.com/silverstripe/silverstripe-externallinks
 
-### Steps to prepare this module for your own use:
+## Maintainer Contact
 
-- Clone this repository into a folder
-- Add your name/organisation to `LICENSE.md`
-- Update this readme with information about your module. Ensure sections that aren't relevant are deleted and 
-placeholders are edited where relevant
-- Review the README files in the various provided directories. You should replace these with `.gitkeep` or delete the 
-directories
-- Update the module's `composer.json` with your requirements and package name
-- Update (or remove) `package.json` with your requirements and package name. Run `yarn` (or remove `yarn.lock`) to 
-ensure dependencies resolve correctly
-- Clear the git history by running `rm -rf .git && git init`
-- Add and push to a VCS repository
-- Either [publish](https://getcomposer.org/doc/02-libraries.md#publishing-to-packagist) the module on packagist.org, or add a [custom repository](https://getcomposer.org/doc/02-libraries.md#publishing-to-a-vcs) to your main `composer.json`
-- Require the module in your main `composer.json`
-- If you need to build a JS client
-  - Ensure that `vendor/silverstripe/admin` is installed with `composer install --prefer-source` instead of the default `--prefer-dist`.  You may need to first remove the module from the vendor folder.
-  - Install third party dependencies in your module AND in `vendor/silverstripe/admin` by running `yarn install` in both locations
-- Start developing your module!
+* NZRickyLi (@gmail.com)
 
 ## Requirements
 
 * SilverStripe ^4.0
-* [Yarn](https://yarnpkg.com/lang/en/), [NodeJS](https://nodejs.org/en/) (6.x) and [npm](https://npmjs.com) (for building
-  frontend assets)
-* Other module
-* Other server requirement
-* Etc
+* Silverstripe External Links (silverstripe/externallinks)
+
+## Features
+
+* Add external links to broken links reports
+* Add a task to track external broken links
+* Add HTMLText fields inside blocks external broken links to broken links reports
 
 ## Installation
-Add some installation instructions here, having a 1 line composer copy and paste is useful. 
-Here is a composer command to create a new module project. Ensure you read the
-['publishing a module'](https://docs.silverstripe.org/en/developer_guides/extending/how_tos/publish_a_module/) guide
-and update your module's composer.json to designate your code as a SilverStripe module. 
 
+1. Require the module via composer: `composer require nzrickyli/externallinks`
+2. Run `/dev/build` in your browser to rebuild the database.
+3. Run the following task *http://path.to.silverstripe/dev/tasks/CheckExternalLinks* to check for
+   broken external links
+
+## Report
+
+A new report is added called 'External Broken links report'. When viewing this report, a user may press
+the "Create new report" button which will trigger an ajax request to initiate a report run.
+
+In this initial ajax request this module will do one of two things, depending on which modules are included:
+
+* If the queuedjobs module is installed, a new queued job will be initiated. The queuedjobs module will then
+  manage the progress of the task.
+* If the queuedjobs module is absent, then the controller will fallback to running a buildtask in the background.
+  This is less robust, as a failure or error during this process will abort the run.
+
+In either case, the background task will loop over every page in the system, inspecting all external urls and
+checking the status code returned by requesting each one. If a URL returns a response code that is considered
+"broken" (defined as < 200 or > 302) then the `ss-broken` css class will be assigned to that url, and
+a line item will be added to the report. If a previously broken link has been corrected or fixed, then
+this class is removed.
+
+In the actual report generated the user can click on any broken link item to either view the link in their browser,
+or edit the containing page in the CMS.
+
+While a report is running the current status of this report will be displayed on the report details page, along
+with the status. The user may leave this page and return to it later to view the ongoing status of this report.
+
+Any subsequent report may not be generated until a prior report has completed.
+
+## Dev task
+
+Run the following task *http://path.to.silverstripe/dev/tasks/CheckExternalLinksTask* to check your site for external
+broken links.
+
+## Queued job
+
+If you have the queuedjobs module installed you can set the task to be run every so often.
+
+## Whitelisting codes
+
+If you want to ignore or whitelist certain HTTP codes this can be setup via `ignore_codes` in the config.yml
+file in `mysite/_config`:
+
+```yml
+SilverStripe\ExternalLinks\Tasks\CheckExternalLinksTask:
+  ignore_codes:
+    - 401
+    - 403
+    - 501
 ```
-composer require silverstripe-module/skeleton 4.x-dev
-```
 
-**Note:** When you have completed your module, submit it to Packagist or add it as a VCS repository to your
-project's composer.json, pointing to the private repository URL.
+## Upgrading from 1.x to 2.x
 
-## License
-See [License](license.md)
+When upgrading from 1.x to 2.x (SilverStripe 3.x to 4.x) you will need to be aware of the following API changes:
 
-We have included a 3-clause BSD license you can use as a default. We advocate for the BSD license as 
-it is one of the most permissive and open licenses.
+* Configuration property `CheckExternalLinksTask.IgnoreCodes` renamed to `CheckExternalLinksTask.ignore_codes`
+* Configuration property `CheckExternalLinksTask.FollowLocation` and `BypassCache` renamed to `follow_location` and `bypass_cache`
 
-Feel free to alter the [license.md](license.md) to suit if you wan to use an alternative license.
-You can use [choosealicense.com](http://choosealicense.com) to help pick a suitable license for your project.
+## Follow 301 redirects
 
-## Documentation
- * [Documentation readme](docs/en/readme.md)
+You may want to follow a redirected URL a example of this would be redirecting from http to https
+can give you a false poitive as the http code of 301 will be returned which will be classed
+as a working link.
 
-Add links into your docs/<language> folder here unless your module only requires minimal documentation 
-in that case, add here and remove the docs folder. You might use this as a quick table of content if you
-mhave multiple documentation pages.
-
-## Example configuration (optional)
-If your module makes use of the config API in SilverStripe it's a good idea to provide an example config
- here that will get the module working out of the box and expose the user to the possible configuration options.
-
-Provide a yaml code example where possible.
+To allow redirects to be followed setup the following config in your config.yml
 
 ```yaml
-
-Page:
-  config_option: true
-  another_config:
-    - item1
-    - item2
-  
+# Follow 301 redirects
+SilverStripe\ExternalLinks\Tasks\CurlLinkChecker:
+  follow_location: 1
 ```
 
-## Maintainers
- * Person here <person@emailaddress.com>
- * Another maintainer <maintain@emailaddress.com>
- 
-## Bugtracker
-Bugs are tracked in the issues section of this repository. Before submitting an issue please read over 
-existing issues to ensure yours is unique. 
- 
-If the issue does look like a new bug:
- 
- - Create a new issue
- - Describe the steps required to reproduce your issue, and the expected outcome. Unit tests, screenshots 
- and screencasts can help here.
- - Describe your environment as detailed as possible: SilverStripe version, Browser, PHP version, 
- Operating System, any installed SilverStripe modules.
- 
-Please report security issues to the module maintainers directly. Please don't file security issues in the bugtracker.
- 
-## Development and contribution
-If you would like to make contributions to the module please ensure you raise a pull request and discuss with the module maintainers.
+## Bypass cache
+
+By default the task will attempt to cache any results the cache can be bypassed with the
+following config in config.yml.
+
+```yaml
+# Bypass SS_Cache
+SilverStripe\ExternalLinks\Tasks\CurlLinkChecker::
+  bypass_cache: 1
+```
+
+## Headers
+
+You may want to set headers to be sent with the CURL request (eg: user-agent) to avoid website rejecting the request thinking it is a bot.
+You can set them with the following config in config.yml.
+
+```yaml
+# Headers
+SilverStripe\ExternalLinks\Tasks\CurlLinkChecker:
+  headers:
+    - 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:53.0) Gecko/20100101 Firefox/53.0'
+    - 'accept-encoding: gzip, deflate, br'
+    - 'referer: https://www.domain.com/'
+    - 'sec-fetch-mode: navigate'
+    ...
+```

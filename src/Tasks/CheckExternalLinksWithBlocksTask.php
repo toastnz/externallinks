@@ -21,13 +21,13 @@ use Toast\Blocks\Block;
 use Toast\Blocks\TextBlock;
 use Toast\Extensions\BrokenExternalPageTrackStatusExtension;
 
-class CheckExternalLinksForBlocksTask extends BuildTask
+class CheckExternalLinksWithBlocksTask extends BuildTask
 {
     private static $dependencies = [
         'LinkChecker' => '%$' . LinkChecker::class
     ];
 
-    private static $segment = 'CheckExternalLinksForBlocksTask';
+    private static $segment = 'CheckExternalLinksWithBlocksTask';
 
     /**
      * Define a list of HTTP response codes that should not be treated as "broken", where they usually
